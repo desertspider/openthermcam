@@ -186,7 +186,9 @@ def create_app(camera: CameraSource, library: Library) -> FastAPI:
                 if time.time() - last_status > 1.0:
                     last_status = time.time()
                     await ws.send_text(json.dumps({"type": "status", **status()["camera"]}))
-        except (WebSocketDisconnect, RuntimeError):
+        except (WebSocketDisconnect, RuntimeError, asyncio.CancelledError):
+            pass  # browser went away or the server is shutting down
+        except Exception:  # connection closed underneath us (e.g. during shutdown)
             pass
         finally:
             clients.discard(q)

@@ -30,7 +30,12 @@ def cmd_serve(args: argparse.Namespace) -> None:
     print(f"OpenThermCam on {url}  (data: {args.data_dir})", flush=True)
     if args.open:
         webbrowser.open(url)
-    uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
+    try:
+        # short graceful timeout: open live WebSockets would otherwise keep Ctrl+C waiting
+        uvicorn.run(app, host=args.host, port=args.port, log_level="warning", timeout_graceful_shutdown=2)
+    except KeyboardInterrupt:
+        pass
+    print("OpenThermCam gestopt.", flush=True)
 
 
 def cmd_mcp(args: argparse.Namespace) -> None:
