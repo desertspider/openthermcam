@@ -27,14 +27,19 @@ export async function compareView(root, a, b) {
   const palette = localStorage.getItem("otc.palette") || "ironbow";
   // render A and B on a shared temperature range so colours are comparable
   const vmin = Math.min(r.a.min, r.b.min), vmax = Math.max(r.a.max, r.b.max);
-  const img = (id) => `/api/snapshots/${id}/image?palette=${palette}&scale=2&vmin=${vmin}&vmax=${vmax}`;
+  const [imgA, imgB, imgDiff] = await Promise.all([
+    api.imageUrl(a, { palette, scale: 2, vmin, vmax }),
+    api.imageUrl(b, { palette, scale: 2, vmin, vmax }),
+    api.compareImageUrl(a, b),
+  ]);
+  const img = (id) => (id === a ? imgA : imgB);
   const d = r.difference;
   const cls = (v) => (v > 0.05 ? "up" : v < -0.05 ? "down" : "");
   out.append(h(`<div>
       <div class="compare-grid">
         <figure><img src="${img(a)}" alt="A"><figcaption><b>A</b> · <a href="#/snapshot/${a}">${esc(sa.title || "Zonder titel")}</a> · ${fmtDate(sa.taken_at)} · ${fmt(r.a.min)} – ${fmt(r.a.max)}</figcaption></figure>
         <figure><img src="${img(b)}" alt="B"><figcaption><b>B</b> · <a href="#/snapshot/${b}">${esc(sb.title || "Zonder titel")}</a> · ${fmtDate(sb.taken_at)} · ${fmt(r.b.min)} – ${fmt(r.b.max)}</figcaption></figure>
-        <figure><img src="/api/compare/image?a=${a}&b=${b}&scale=2" alt="Verschil"><figcaption><b>B − A</b> · rood = warmer, blauw = kouder · gem. ${fmt(d.mean, 2)} · max +${d.max_increase.toFixed(1)} / ${d.max_decrease.toFixed(1)} °C</figcaption></figure>
+        <figure><img src="${imgDiff}" alt="Verschil"><figcaption><b>B − A</b> · rood = warmer, blauw = kouder · gem. ${fmt(d.mean, 2)} · max +${d.max_increase.toFixed(1)} / ${d.max_decrease.toFixed(1)} °C</figcaption></figure>
       </div>
       <div class="panel" style="margin-top:16px"><h3>Meetpunten</h3>
         ${r.points.length ? `<table><thead><tr><th>Meetpunt</th><th>Type</th><th>A</th><th>B</th><th>Verschil</th></tr></thead><tbody>

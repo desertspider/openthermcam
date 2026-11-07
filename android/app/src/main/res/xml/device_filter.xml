@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Thermal camera: Linux USB gadget VID 0x1D6B, PID 0x1110 -->
+    <usb-device vendor-id="7019" product-id="4368" />
+</resources>

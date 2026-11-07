@@ -18,8 +18,8 @@ export async function snapshotView(root, id) {
         <div class="toolbar"><a href="#/library">← Bibliotheek</a><span class="spacer"></span>
           <span class="muted">${fmtDate(snap.taken_at)} · ${esc(snap.source)}</span></div>
         <div id="stage"></div>
-        ${snap.has_visual ? `<details style="margin-top:12px"><summary>Visuele foto van de camera</summary>
-          <img src="/api/snapshots/${id}/file?visual=true" style="max-height:60vh;margin-top:8px;border-radius:8px" alt="Visuele foto"></details>` : ""}
+        ${snap.has_visual ? `<details style="margin-top:12px" id="visual"><summary>Visuele foto van de camera</summary>
+          <img style="max-height:60vh;max-width:100%;margin-top:8px;border-radius:8px" alt="Visuele foto"></details>` : ""}
       </section>
       <aside>
         <div class="panel"><h3>Gegevens</h3>
@@ -27,7 +27,7 @@ export async function snapshotView(root, id) {
           <label class="field"><span>Tags (komma's)</span><input id="tags" value="${esc(snap.tags.join(", "))}"></label>
           <label class="field"><span>Notitie</span><textarea id="notes">${esc(snap.notes)}</textarea></label>
           <div class="row"><button class="primary" id="save" disabled>Opslaan</button>
-            <a href="/api/snapshots/${id}/file" download><button>Download JPEG</button></a>
+            <button id="download">${api.kind === "local" ? "Delen" : "Download JPEG"}</button>
             <span class="spacer" style="flex:1"></span><button class="danger" id="delete">Verwijderen</button></div>
         </div>
         <div class="panel"><h3>Beeld</h3><div id="stats"></div></div>
@@ -46,6 +46,9 @@ export async function snapshotView(root, id) {
   view.setPoints(snap.points);
   stats.update(view.stats);
   list.rebuild();
+
+  el.querySelector("#download").addEventListener("click", () => api.downloadSnapshot(id).catch((e) => toast(esc(e.message))));
+  if (snap.has_visual) api.visualUrl(id).then((url) => { if (url) el.querySelector("#visual img").src = url; });
 
   const saveBtn = el.querySelector("#save");
   function setDirty(v) { dirty = v; saveBtn.disabled = !v; }

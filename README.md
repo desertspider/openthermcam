@@ -57,6 +57,17 @@ uv run openthermcam serve --device "Name"   # if your camera has another device 
 The library is stored in `%LOCALAPPDATA%\OpenThermCam` (SQLite database + one radiometric JPEG
 per snapshot). Use `--data-dir` or `OPENTHERMCAM_DATA` to choose another place.
 
+## Android app
+
+The same UI also runs as an Android app (`android/`). The app reads the camera directly over
+USB-C (USB host API, no root, no driver) and keeps its library on the phone (IndexedDB).
+Snapshots can be shared as radiometric JPEGs and imported into the PC library.
+
+- Requires Android 8.0+ with USB host (USB-C/OTG). iOS is not possible (no access to USB cameras).
+- The app opens automatically when the camera is plugged in; allow the USB permission once.
+- Build: open `android/` in Android Studio and run, or `gradlew assembleDebug` in `android/`.
+  The web UI from `openthermcam/web` is copied into the APK at build time.
+
 ## AI integration (MCP)
 
 The MCP server talks to the running app (the camera can only be opened once), so keep

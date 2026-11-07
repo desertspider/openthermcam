@@ -9,8 +9,10 @@ export async function libraryView(root) {
         <select id="tag"><option value="">Alle tags</option></select>
         <span class="spacer"></span>
         <button id="compare" disabled>Vergelijk geselecteerde (0/2)</button>
-        <input id="folder" placeholder="Map met radiometrische JPEG's" value="${esc(localStorage.getItem("otc.importDir") || "D:\\DCIM")}" style="width:220px">
-        <button id="import">Importeren</button>
+        ${api.kind === "local"
+          ? `<label class="button-like"><input type="file" id="files" accept="image/jpeg,.jpg" multiple hidden>Foto's importeren…</label>`
+          : `<input id="folder" placeholder="Map met radiometrische JPEG's" value="${esc(localStorage.getItem("otc.importDir") || "D:\\DCIM")}" style="width:220px">
+             <button id="import">Importeren</button>`}
       </div>
       <div class="grid" id="grid"></div>
       <p class="hint" id="count"></p>
@@ -36,13 +38,14 @@ export async function libraryView(root) {
     for (const s of items) {
       const card = h(`<div class="card${picked.has(s.id) ? " picked" : ""}">
           <input type="checkbox" class="pick" title="Selecteren om te vergelijken" ${picked.has(s.id) ? "checked" : ""}>
-          <img loading="lazy" src="${api.imageUrl(s.id, localStorage.getItem("otc.palette") || "ironbow", 1)}" alt="">
+          <img loading="lazy" alt="">
           <div class="meta">
             <div class="title">${esc(s.title || "Zonder titel")}</div>
             <div class="sub"><span>${fmtDate(s.taken_at)}</span><span>${s.tmax.toFixed(1)} °C</span></div>
             <div class="tags">${s.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>
           </div>
         </div>`);
+      api.imageUrl(s.id, { palette: localStorage.getItem("otc.palette") || "ironbow" }).then((url) => (card.querySelector("img").src = url));
       const box = card.querySelector(".pick");
       box.addEventListener("click", (ev) => {
         ev.stopPropagation();
@@ -65,20 +68,25 @@ export async function libraryView(root) {
     const [a, b] = [...picked];
     location.hash = `#/compare/${a}/${b}`;
   });
-  el.querySelector("#import").addEventListener("click", async (ev) => {
-    const folder = el.querySelector("#folder").value.trim();
-    localStorage.setItem("otc.importDir", folder);
-    ev.target.disabled = true;
+  async function runImport(task, control) {
+    control.disabled = true;
     try {
-      const r = await api.importFolder(folder);
+      const r = await task();
       toast(`${r.imported.length} geïmporteerd · ${r.duplicate} al aanwezig · ${r.skipped} overgeslagen${r.errors.length ? ` · ${r.errors.length} fouten` : ""}`, 5000);
       load();
     } catch (e) {
       toast(`Import mislukt: ${esc(e.message)}`, 5000);
     } finally {
-      ev.target.disabled = false;
+      control.disabled = false;
     }
+  }
+  el.querySelector("#import")?.addEventListener("click", (ev) => {
+    const folder = el.querySelector("#folder").value.trim();
+    localStorage.setItem("otc.importDir", folder);
+    runImport(() => api.importFolder(folder), ev.target);
   });
+  const files = el.querySelector("#files");
+  files?.addEventListener("change", () => runImport(() => api.importFiles(files.files), files));
   updatePicked();
   await load();
 }

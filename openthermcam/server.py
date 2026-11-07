@@ -10,7 +10,7 @@ from pathlib import Path
 
 import numpy as np
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -292,8 +292,8 @@ def create_app(camera: CameraSource, library: Library) -> FastAPI:
 
     # ---- web UI ---------------------------------------------------------------
     @app.get("/")
-    def index() -> FileResponse:
-        return FileResponse(WEB_DIR / "index.html")
+    def index() -> RedirectResponse:
+        return RedirectResponse("/static/index.html")
 
     app.mount("/static", StaticFiles(directory=WEB_DIR), name="static")
     return app

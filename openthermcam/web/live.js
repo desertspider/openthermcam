@@ -3,7 +3,7 @@ import { api, esc, getPalettes, h, toast } from "./api.js";
 import { PointList, statsPanel, viewControls } from "./points.js";
 import { ThermalView } from "./thermal.js";
 
-const MSG_H264 = 1, MSG_TEMP = 2, ROWS = 256, COLS = 192;
+const ROWS = 256, COLS = 192;
 
 function codecFromSps(bytes) {
   // Annex-B: find NAL type 7 (SPS) and read profile/compat/level.
@@ -100,37 +100,26 @@ export async function liveView(root) {
     decoder.decode(new EncodedVideoChunk({ type: "key", timestamp: (ts += 33333), data: bytes }));
   }
 
-  // ---- websocket ----------------------------------------------------------------
-  let ws, closed = false, lastFrame = 0;
-  function connect() {
-    ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/live`);
-    ws.binaryType = "arraybuffer";
-    ws.onmessage = (ev) => {
-      if (typeof ev.data === "string") return;
-      const type = new Uint8Array(ev.data, 0, 1)[0];
-      if (type === MSG_TEMP) {
-        const raw = new Uint16Array(ev.data.slice(1));
-        const t = new Float32Array(raw.length);
-        for (let i = 0; i < raw.length; i++) t[i] = raw[i] / 10 - 273.15;
-        view.setMatrix(t, ROWS, COLS);
-        stats.update(view.stats);
-        list.refresh();
-        lastFrame = Date.now();
-      } else if (type === MSG_H264) {
-        decodeVideo(new Uint8Array(ev.data, 1));
-      }
-    };
-    ws.onclose = () => { if (!closed) setTimeout(connect, 1500); };
-  }
-  connect();
+  // ---- live stream (WebSocket on PC, USB bridge on Android) -------------------------
+  let lastFrame = 0;
+  const closeLive = api.openLive({
+    onTemp(raw) {
+      const t = new Float32Array(raw.length);
+      for (let i = 0; i < raw.length; i++) t[i] = raw[i] / 10 - 273.15;
+      view.setMatrix(t, ROWS, COLS);
+      stats.update(view.stats);
+      list.refresh();
+      lastFrame = Date.now();
+    },
+    onVideo: decodeVideo,
+  });
   const ageTimer = setInterval(() => {
     const el = layout.querySelector("#age");
     el.textContent = lastFrame ? `Temperatuurdata ${((Date.now() - lastFrame) / 1000).toFixed(1)} s oud · ververst ±1×/s` : "";
   }, 500);
 
   return () => {
-    closed = true;
-    ws?.close();
+    closeLive();
     clearInterval(ageTimer);
     document.removeEventListener("keydown", onKey);
     try { decoder?.close(); } catch { /* already closed */ }
