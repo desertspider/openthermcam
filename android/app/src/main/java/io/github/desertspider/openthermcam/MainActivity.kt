@@ -23,8 +23,11 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.FrameLayout
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.webkit.WebMessageCompat
 import androidx.webkit.WebMessagePortCompat
 import androidx.webkit.WebViewAssetLoader
@@ -110,7 +113,18 @@ class MainActivity : Activity() {
             }
             addJavascriptInterface(Bridge(), "OTCNative")
         }
-        setContentView(webView)
+        // Android 15 draws edge-to-edge: keep the UI clear of the status and navigation bars.
+        // (A WebView ignores its own padding, so the insets go on a container around it.)
+        val root = FrameLayout(this).apply {
+            setBackgroundColor(0xFF171A21.toInt())
+            addView(webView, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        }
+        setContentView(root)
+        ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+            v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            WindowInsetsCompat.CONSUMED
+        }
 
         val filter = IntentFilter().apply {
             addAction(ACTION_USB_PERMISSION)
