@@ -1,6 +1,8 @@
 package io.github.desertspider.openthermcam
 
+import android.Manifest
 import android.annotation.SuppressLint
+import android.content.pm.PackageManager
 import android.app.Activity
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
@@ -50,6 +52,7 @@ class MainActivity : Activity() {
         private const val START_URL = "$ORIGIN/assets/web/index.html"
         private const val ACTION_USB_PERMISSION = "io.github.desertspider.openthermcam.USB_PERMISSION"
         private const val REQUEST_FILES = 1
+        private const val REQUEST_CAMERA = 2
     }
 
     private lateinit var webView: WebView
@@ -172,9 +175,22 @@ class MainActivity : Activity() {
 
     // ---- camera ---------------------------------------------------------------------------
 
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != REQUEST_CAMERA) return
+        if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) startCamera()
+        else setStatus("error", "zonder cameratoestemming kan Android de USB-camera niet openen")
+    }
+
     private fun startCamera() {
         wantCamera = true
         if (camera.isRunning) return
+        // Android 9+ only lets apps open USB video (UVC) devices with the CAMERA permission.
+        if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            setStatus("connecting", "toestemming voor de camera gevraagd")
+            requestPermissions(arrayOf(Manifest.permission.CAMERA), REQUEST_CAMERA)
+            return
+        }
         val device: UsbDevice = camera.findDevice() ?: run {
             setStatus("waiting", "sluit de warmtecamera aan via USB-C")
             return

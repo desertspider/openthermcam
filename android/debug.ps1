@@ -11,6 +11,7 @@ if (-not $NoStart) {
 }
 Start-Sleep -Seconds $Wait
 & $adb logcat -d -v time chromium:V UvcCamera:V AndroidRuntime:E ActivityManager:W *:S | Out-File -Encoding utf8 "$out\logcat.txt"
+& $adb logcat -d -v time | Out-File -Encoding utf8 "$out\logcat-all.txt"
 & $adb shell screencap -p /sdcard/otc-screen.png
 & $adb pull /sdcard/otc-screen.png "$out\screen.png" | Out-Null
 & $adb shell rm /sdcard/otc-screen.png
