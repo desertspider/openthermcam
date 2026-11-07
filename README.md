@@ -65,7 +65,8 @@ Snapshots can be shared as radiometric JPEGs and imported into the PC library.
 
 - Requires Android 8.0+ with USB host (USB-C/OTG). iOS is not possible (no access to USB cameras).
 - The app opens automatically when the camera is plugged in; allow the USB permission once.
-- Build: open `android/` in Android Studio and run, or `gradlew assembleDebug` in `android/`.
+- Build: open `android/` in Android Studio and run, or without Android Studio:
+  `android\build.ps1 -Install` (JDK 17 + Android SDK in `C:\dev\android-tools`, or set `JAVA_HOME`/`ANDROID_HOME`).
   The web UI from `openthermcam/web` is copied into the APK at build time.
 
 ## AI integration (MCP)
