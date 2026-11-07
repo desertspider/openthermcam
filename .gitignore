@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+dist/
+build/
+*.egg-info/
+
+# Local data and captures (never commit personal thermal images or USB captures)
+data/
+*.pcap
+*.pcapng
+
+# local tooling
+.claude/
