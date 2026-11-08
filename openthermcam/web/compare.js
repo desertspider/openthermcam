@@ -3,7 +3,12 @@ import { api, esc, fmt, fmtDate, h } from "./api.js";
 
 export async function compareView(root, a, b) {
   const all = await api.list({ limit: 500 });
-  const opt = (sel) => all.map((s) => `<option value="${s.id}" ${s.id === sel ? "selected" : ""}>${esc(s.title || "Zonder titel")} · ${fmtDate(s.taken_at)}</option>`).join("");
+  // ignore ids that are missing, stale or literally "undefined"
+  const known = new Set(all.map((s) => s.id));
+  a = known.has(a) ? a : "";
+  b = known.has(b) ? b : "";
+  const opt = (sel) => `<option value="" ${sel ? "" : "selected"}>— kies een snapshot —</option>` +
+    all.map((s) => `<option value="${s.id}" ${s.id === sel ? "selected" : ""}>${esc(s.title || "Zonder titel")} · ${fmtDate(s.taken_at)}</option>`).join("");
   const el = h(`<div>
       <div class="toolbar">
         <label class="inline">A <select id="a">${opt(a)}</select></label>
@@ -13,14 +18,23 @@ export async function compareView(root, a, b) {
       <div id="out"></div>
     </div>`);
   root.append(el);
-  const go = () => (location.hash = `#/compare/${el.querySelector("#a").value}/${el.querySelector("#b").value}`);
-  el.querySelector("#a").addEventListener("change", go);
-  el.querySelector("#b").addEventListener("change", go);
-  el.querySelector("#swap").addEventListener("click", () => (location.hash = `#/compare/${b}/${a}`));
+  const sel = (id) => el.querySelector(id).value;
+  const go = (x, y) => (location.hash = `#/compare/${x || "-"}/${y || "-"}`);
+  el.querySelector("#a").addEventListener("change", () => go(sel("#a"), sel("#b")));
+  el.querySelector("#b").addEventListener("change", () => go(sel("#a"), sel("#b")));
+  el.querySelector("#swap").addEventListener("click", () => go(sel("#b"), sel("#a")));
 
   const out = el.querySelector("#out");
+  if (all.length < 2) {
+    out.append(h(`<p class="muted">Je hebt minstens twee snapshots nodig om te vergelijken.</p>`));
+    return;
+  }
   if (!a || !b) {
-    out.append(h(`<p class="muted">Kies twee snapshots, of selecteer er twee in de <a href="#/library">bibliotheek</a>.</p>`));
+    out.append(h(`<p class="muted">Kies hierboven twee snapshots, of selecteer er twee in de <a href="#/library">bibliotheek</a>.</p>`));
+    return;
+  }
+  if (a === b) {
+    out.append(h(`<p class="muted">Kies twee verschillende snapshots.</p>`));
     return;
   }
   const [r, sa, sb] = await Promise.all([api.compare(a, b), api.get(a), api.get(b)]);

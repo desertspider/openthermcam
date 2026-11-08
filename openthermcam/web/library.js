@@ -43,12 +43,12 @@ export async function libraryView(root) {
         <button id="compare" disabled>Vergelijk geselecteerde (0/2)</button>
         ${api.kind === "local"
           ? `<label class="button-like"><input type="file" id="files" accept="image/jpeg,.jpg" multiple hidden>Foto's importeren…</label>
-             <button id="mcp-toggle" title="Claude laten meelezen via MCP">🤖 Claude</button>`
+             <button id="mcp-toggle" title="MCP-server: AI (bijv. Claude) de snapshots laten lezen">MCP</button>`
           : `<input id="folder" placeholder="Map met radiometrische JPEG's" value="${esc(localStorage.getItem("otc.importDir") || "D:\\DCIM")}" style="width:220px">
              <button id="import">Importeren</button>`}
       </div>
-      ${api.kind === "local" ? `<div class="panel" id="mcp-panel" hidden style="margin-bottom:12px"><h3>Claude (MCP)</h3>
-        <p class="hint" style="margin:0 0 10px">Laat Claude op je computer de snapshots op deze telefoon lezen en analyseren.
+      ${api.kind === "local" ? `<div class="panel" id="mcp-panel" hidden style="margin-bottom:12px"><h3>MCP-server</h3>
+        <p class="hint" style="margin:0 0 10px">Laat een AI-assistent op je computer (bijv. Claude) via MCP de snapshots op deze telefoon lezen en analyseren.
           Telefoon en computer moeten op hetzelfde wifi-netwerk zitten, en de app moet open staan.</p>
         <label class="inline" style="margin-bottom:10px"><input type="checkbox" id="mcp-on"> MCP-server aan</label>
         <div id="mcp-info"></div>

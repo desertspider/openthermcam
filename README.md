@@ -155,7 +155,7 @@ The Android app has its own MCP server for the snapshots stored on the phone (no
 Claude on a computer in the same Wi-Fi network connects to it directly; no PC app and no firewall
 change are needed.
 
-1. In the app: **Bibliotheek → 🤖 Claude → MCP-server aan**. The app shows its address, a key and
+1. In the app: **Bibliotheek → MCP → MCP-server aan**. The app shows its address, a key and
    the ready-made command.
 2. On the computer (Claude Code):
 
