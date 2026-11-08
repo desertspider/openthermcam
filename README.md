@@ -165,8 +165,9 @@ change are needed.
 
    Claude Desktop cannot connect to a plain-HTTP server on the local network by itself; use the
    [mcp-remote](https://www.npmjs.com/package/mcp-remote) bridge (needs Node.js) in
-   `claude_desktop_config.json` (for the Microsoft Store version it is in
-   `%LOCALAPPDATA%\Packages\Claude_*\LocalCache\Roaming\Claude\`), then restart Claude Desktop:
+   `claude_desktop_config.json` (open it via Claude Desktop → Settings → Developer → Edit Config;
+   on Windows it can be in `%APPDATA%\Claude\` or `%LOCALAPPDATA%\Claude-Data\<profile>\`), add the
+   entry to `mcpServers` and restart Claude Desktop:
 
    ```json
    {
