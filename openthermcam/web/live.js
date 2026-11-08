@@ -1,6 +1,7 @@
 // Live view: WebSocket stream (H.264 video + radiometric frames), live points, snapshots.
 import { api, esc, getPalettes, h, toast } from "./api.js";
 import { PointList, statsPanel, viewControls } from "./points.js";
+import { HybridMapper } from "./hybrid.js";
 import { ThermalView } from "./thermal.js";
 
 const ROWS = 256, COLS = 192;
@@ -30,6 +31,10 @@ export async function liveView(root) {
   const list = new PointList(view, { onChange: () => view.onPointsChange(view.points) });
   const stats = statsPanel();
   const hasWebCodecs = "VideoDecoder" in window;
+  const mapper = new HybridMapper(ROWS, COLS);
+  let savedMode = null;
+  try { savedMode = localStorage.getItem("otc.mode"); } catch { /* storage unavailable */ }
+  view.mode = hasWebCodecs ? (["hybrid", "radiometric", "video"].includes(savedMode) ? savedMode : "hybrid") : "radiometric";
 
   const layout = h(`<div class="layout">
       <section class="panel" id="stage-panel"></section>
@@ -46,7 +51,10 @@ export async function liveView(root) {
       </aside>
     </div>`);
   const stagePanel = layout.querySelector("#stage-panel");
-  stagePanel.append(viewControls(view, palettes, { video: hasWebCodecs }), view.el);
+  stagePanel.append(viewControls(view, palettes, {
+    video: hasWebCodecs,
+    onMode: (m) => { try { localStorage.setItem("otc.mode", m); } catch { /* ignore */ } },
+  }), view.el);
   layout.querySelector("#stats").append(stats);
   layout.querySelector("#points").append(list.el);
   root.append(layout);
@@ -85,13 +93,26 @@ export async function liveView(root) {
 
   // ---- video decoder ----------------------------------------------------------
   let decoder = null, codec = null, ts = 0;
+  function onDecoded(frame) {
+    if (view.mode === "video") return view.setVideoFrame(frame);
+    if (view.mode === "hybrid") {
+      mapper.onVideo(frame);
+      const est = mapper.estimate();
+      if (est) {
+        view.setMatrix(est, ROWS, COLS);
+        stats.update(view.stats);
+        list.refresh();
+      }
+    }
+    frame.close();
+  }
   function decodeVideo(bytes) {
-    if (!hasWebCodecs || view.mode !== "video") return;
+    if (!hasWebCodecs || view.mode === "radiometric") return;
     if (!decoder) {
       codec = codecFromSps(bytes);
       if (!codec) return;
       decoder = new VideoDecoder({
-        output: (frame) => view.setVideoFrame(frame),
+        output: onDecoded,
         error: (e) => { console.warn("video decoder", e); decoder = null; },
       });
       decoder.configure({ codec, optimizeForLatency: true });
@@ -106,6 +127,7 @@ export async function liveView(root) {
     onTemp(raw) {
       const t = new Float32Array(raw.length);
       for (let i = 0; i < raw.length; i++) t[i] = raw[i] / 10 - 273.15;
+      if (view.mode === "hybrid") mapper.calibrate(t);
       view.setMatrix(t, ROWS, COLS);
       stats.update(view.stats);
       list.refresh();
@@ -115,7 +137,17 @@ export async function liveView(root) {
   });
   const ageTimer = setInterval(() => {
     const el = layout.querySelector("#age");
-    el.textContent = lastFrame ? `Temperatuurdata ${((Date.now() - lastFrame) / 1000).toFixed(1)} s oud · ververst ±1×/s` : "";
+    if (!lastFrame) { el.textContent = ""; return; }
+    const age = `meting ${((Date.now() - lastFrame) / 1000).toFixed(1)} s oud`;
+    if (view.mode === "hybrid") {
+      el.textContent = mapper.ready
+        ? `Combi: 30 fps geschat uit video (±${mapper.rms.toFixed(1)} °C), elke seconde gecorrigeerd · ${age}`
+        : mapper.rms !== null && mapper.rms > 2
+          ? `Combi: het palet van de camera is niet bruikbaar voor schatten (kies op de camera ironbow of wit-heet); toont de meting ±1×/s`
+          : `Combi: kalibreren… · ${age}`;
+    } else {
+      el.textContent = `Temperatuurdata ${age} · ververst ±1×/s`;
+    }
   }, 500);
 
   return () => {

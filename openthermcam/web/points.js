@@ -76,8 +76,10 @@ export function viewControls(view, palettes, { video = false, onMode } = {}) {
   const names = Object.keys(palettes).filter((n) => n !== "diff");
   const el = h(`<div class="toolbar">
       ${video ? `<div class="seg" data-g="mode">
-        <button data-v="radiometric" class="active" title="Eigen palet uit de temperatuurmatrix (~1×/s)">Radiometrisch</button>
-        <button data-v="video" title="Vloeiend camerabeeld (30 fps, palet van de camera)">Video</button></div>` : ""}
+        ${[["hybrid", "Combi", "30 fps in je eigen palet: temperaturen geschat uit de video, elke seconde gecorrigeerd met de echte meting"],
+           ["radiometric", "Radiometrisch", "Exacte temperatuurmatrix in je eigen palet (~1×/s)"],
+           ["video", "Video", "Camerabeeld zelf (30 fps, palet en bereik van de camera)"]]
+          .map(([v, label, tip]) => `<button data-v="${v}" class="${view.mode === v ? "active" : ""}" title="${tip}">${label}</button>`).join("")}</div>` : ""}
       <select data-g="palette" aria-label="Palet">${names.map((n) => `<option>${n}</option>`).join("")}</select>
       <div class="seg" data-g="range">
         <button data-v="auto" class="active">Auto</button><button data-v="lock" title="Bereik vastzetten">Vast</button></div>

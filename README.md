@@ -12,7 +12,7 @@ the camera directly over USB-C. The user interface is in Dutch.
 | | Device | System |
 |---|---|---|
 | Camera | **RayThink CX200+** handheld thermal camera, 256×192 sensor, USB ID `1D6B:1110` (Linux USB gadget: UVC + mass storage + RNDIS) | – |
-| PC | Framework Laptop 16 (AMD Ryzen AI 300 Series) | Windows 11 Pro |
+| PC | Windows PC | Windows 11 Pro |
 | Phone | Google Pixel 8 Pro (camera on the USB-C port) | Android 17 |
 
 Other cameras that TDView handles as "UVC handheld" and that send the same in-band temperature
@@ -21,9 +21,14 @@ frames (see [docs/PROTOCOL.md](docs/PROTOCOL.md)) will most likely work too, but
 ## What it does
 
 - **Live view** in the browser
-  - *Radiometric*: your own palette (ironbow, rainbow, white-hot, black-hot, lava) on the full
+  - *Combi* (default): 30 fps in your own palette. Each exact temperature frame (about once per
+    second) is paired with the video to learn how video brightness maps to temperature; the video
+    frames in between are converted with that mapping (typically within a few tenths of a degree,
+    corrected every second). Needs a dark-to-light palette on the camera (ironbow, white-hot).
+  - *Radiometric*: your own palette (ironbow, rainbow, white-hot, black-hot, lava) on the exact
     192×256 temperature matrix, refreshed about once per second (the camera's rate).
   - *Video*: the camera's own 30 fps picture, decoded in the browser (WebCodecs).
+  - Snapshots always store the exact temperature matrix, whatever the view mode.
   - Auto range or fixed min/max, colour scale, hot- and coldspot markers, hover probe.
 - **Measurement points**: points and rectangles (min/max/average), drag to move, rename,
   Delete key to remove. Live points are remembered between sessions.
