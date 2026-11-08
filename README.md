@@ -163,6 +163,24 @@ change are needed.
    claude mcp add --transport http openthermcam-telefoon http://<phone-ip>:8766/mcp --header "Authorization: Bearer <key>"
    ```
 
+   Claude Desktop cannot connect to a plain-HTTP server on the local network by itself; use the
+   [mcp-remote](https://www.npmjs.com/package/mcp-remote) bridge (needs Node.js) in
+   `claude_desktop_config.json` (for the Microsoft Store version it is in
+   `%LOCALAPPDATA%\Packages\Claude_*\LocalCache\Roaming\Claude\`), then restart Claude Desktop:
+
+   ```json
+   {
+     "mcpServers": {
+       "openthermcam-telefoon": {
+         "command": "npx",
+         "args": ["-y", "mcp-remote", "http://<phone-ip>:8766/mcp", "--allow-http",
+                  "--transport", "http-only", "--header", "Authorization:${OTC_AUTH}"],
+         "env": { "OTC_AUTH": "Bearer <key>" }
+       }
+     }
+   }
+   ```
+
 Tools: `list_snapshots`, `get_snapshot`, `get_snapshot_image`, `get_snapshot_photo`,
 `get_temperature_at`, `compare_snapshots` (with difference image), `list_point_names`, `point_trend`,
 `set_snapshot_points`, `annotate_snapshot`.
