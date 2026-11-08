@@ -21,14 +21,9 @@ frames (see [docs/PROTOCOL.md](docs/PROTOCOL.md)) will most likely work too, but
 ## What it does
 
 - **Live view** in the browser
-  - *Combi* (default): 30 fps in your own palette. Each exact temperature frame (about once per
-    second) is paired with the video to learn how video brightness maps to temperature; the video
-    frames in between are converted with that mapping (typically within a few tenths of a degree,
-    corrected every second). Needs a dark-to-light palette on the camera (ironbow, white-hot).
-  - *Radiometric*: your own palette (ironbow, rainbow, white-hot, black-hot, lava) on the exact
+  - *Radiometric*: your own palette (ironbow, rainbow, white-hot, black-hot, lava) on the full
     192×256 temperature matrix, refreshed about once per second (the camera's rate).
   - *Video*: the camera's own 30 fps picture, decoded in the browser (WebCodecs).
-  - Snapshots always store the exact temperature matrix, whatever the view mode.
   - Auto range or fixed min/max, colour scale, hot- and coldspot markers, hover probe.
 - **Measurement points**: points and rectangles (min/max/average), drag to move, rename,
   Delete key to remove. Live points are remembered between sessions.
