@@ -1,6 +1,38 @@
 // Library: browse, filter, import and pick two snapshots to compare.
 import { api, esc, fmtDate, h, toast } from "./api.js";
 
+async function setupMcpPanel(el) {
+  const { MCP_PORT, mcpAddresses, mcpSettings, setMcpEnabled } = await import("./mcp.js");
+  const panel = el.querySelector("#mcp-panel");
+  const box = el.querySelector("#mcp-on");
+  const info = el.querySelector("#mcp-info");
+  el.querySelector("#mcp-toggle").addEventListener("click", () => (panel.hidden = !panel.hidden));
+  const show = (error) => {
+    const s = mcpSettings();
+    box.checked = !!s.enabled;
+    if (error) { info.innerHTML = `<p class="hint" style="color:var(--err)">${esc(error)}</p>`; return; }
+    if (!s.enabled) { info.innerHTML = ""; return; }
+    const ip = mcpAddresses()[0];
+    if (!ip) { info.innerHTML = `<p class="hint" style="color:var(--warn)">Geen wifi-verbinding gevonden.</p>`; return; }
+    const url = `http://${ip}:${MCP_PORT}/mcp`;
+    const cmd = `claude mcp add --transport http openthermcam-telefoon ${url} --header "Authorization: Bearer ${s.key}"`;
+    info.innerHTML = `
+      <label class="field"><span>Adres</span><input readonly value="${esc(url)}"></label>
+      <label class="field"><span>Sleutel</span><input readonly value="${esc(s.key)}"></label>
+      <label class="field"><span>Commando voor Claude Code (op de computer)</span><textarea readonly rows="4">${esc(cmd)}</textarea></label>
+      <button id="mcp-copy">Commando kopiëren</button>
+      <p class="hint">Verandert het IP-adres van de telefoon (na herstart of ander wifi), voer het commando dan opnieuw uit
+        met het nieuwe adres. Tip: geef de telefoon in je router een vast IP-adres.</p>`;
+    info.querySelector("#mcp-copy").addEventListener("click", () =>
+      navigator.clipboard.writeText(cmd).then(() => toast("Commando gekopieerd"), () => toast("Kopiëren lukte niet; selecteer de tekst")));
+  };
+  box.addEventListener("change", () => {
+    const r = setMcpEnabled(box.checked);
+    show(r.ok ? null : `Starten mislukt: ${r.error}`);
+  });
+  show();
+}
+
 export async function libraryView(root) {
   const picked = new Set(JSON.parse(sessionStorage.getItem("otc.picked") || "[]"));
   const el = h(`<div>
@@ -10,10 +42,17 @@ export async function libraryView(root) {
         <span class="spacer"></span>
         <button id="compare" disabled>Vergelijk geselecteerde (0/2)</button>
         ${api.kind === "local"
-          ? `<label class="button-like"><input type="file" id="files" accept="image/jpeg,.jpg" multiple hidden>Foto's importeren…</label>`
+          ? `<label class="button-like"><input type="file" id="files" accept="image/jpeg,.jpg" multiple hidden>Foto's importeren…</label>
+             <button id="mcp-toggle" title="Claude laten meelezen via MCP">🤖 Claude</button>`
           : `<input id="folder" placeholder="Map met radiometrische JPEG's" value="${esc(localStorage.getItem("otc.importDir") || "D:\\DCIM")}" style="width:220px">
              <button id="import">Importeren</button>`}
       </div>
+      ${api.kind === "local" ? `<div class="panel" id="mcp-panel" hidden style="margin-bottom:12px"><h3>Claude (MCP)</h3>
+        <p class="hint" style="margin:0 0 10px">Laat Claude op je computer de snapshots op deze telefoon lezen en analyseren.
+          Telefoon en computer moeten op hetzelfde wifi-netwerk zitten, en de app moet open staan.</p>
+        <label class="inline" style="margin-bottom:10px"><input type="checkbox" id="mcp-on"> MCP-server aan</label>
+        <div id="mcp-info"></div>
+      </div>` : ""}
       <div class="grid" id="grid"></div>
       <p class="hint" id="count"></p>
     </div>`);
@@ -87,6 +126,7 @@ export async function libraryView(root) {
   });
   const files = el.querySelector("#files");
   files?.addEventListener("change", () => runImport(() => api.importFiles(files.files), files));
+  if (api.kind === "local") await setupMcpPanel(el);
   updatePicked();
   await load();
 }

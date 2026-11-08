@@ -45,6 +45,8 @@ async function pollStatus() {
   }
 }
 
+if (api.kind === "local") import("./mcp.js").then((m) => m.installMcp());
+
 window.addEventListener("hashchange", route);
 route();
 pollStatus();

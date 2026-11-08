@@ -36,7 +36,11 @@ import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import org.json.JSONObject
+import org.json.JSONArray
 import java.io.File
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -156,6 +160,8 @@ class MainActivity : Activity() {
     override fun onDestroy() {
         unregisterReceiver(usbReceiver)
         camera.stop()
+        // keep the MCP server running; a recreated activity takes over answering requests
+        if (McpHost.handler === this) McpHost.handler = null
         webView.destroy()
         super.onDestroy()
     }
@@ -264,8 +270,77 @@ class MainActivity : Activity() {
         startActivity(Intent.createChooser(intent, "Snapshot delen"))
     }
 
+    // ---- MCP server ------------------------------------------------------------------------
+
+    /**
+     * One MCP server per app process, independent of the activity: Android may recreate the
+     * activity (configuration change), and the server must keep running across that. Requests are
+     * answered by whichever activity (WebView) is current.
+     */
+    private object McpHost {
+        var server: McpServer? = null
+        var key = ""
+        var portNumber = 0
+        @Volatile var handler: MainActivity? = null
+
+        @Synchronized fun start(key: String, portNumber: Int) {
+            if (server?.running == true && this.key == key && this.portNumber == portNumber) return
+            server?.stop()
+            server = null
+            this.key = key
+            this.portNumber = portNumber
+            server = McpServer(portNumber, key) { method, params ->
+                (handler ?: throw IllegalStateException("open de OpenThermCam-app op de telefoon")).mcpDispatch(method, params)
+            }.also { it.start() }
+        }
+
+        @Synchronized fun stop() {
+            server?.stop()
+            server = null
+        }
+    }
+
+    private val mcpPending = ConcurrentHashMap<String, CompletableFuture<JSONObject>>()
+    private val mcpSeq = AtomicInteger(0)
+
+    /** Forward an MCP request to the web UI and wait for its answer (called on a server thread). */
+    private fun mcpDispatch(method: String, params: JSONObject): JSONObject {
+        val id = "m${mcpSeq.incrementAndGet()}"
+        val future = CompletableFuture<JSONObject>()
+        mcpPending[id] = future
+        val msg = JSONObject().put("type", "mcp").put("id", id).put("method", method).put("params", params)
+        main.post {
+            val p = port
+            if (p == null) future.completeExceptionally(IllegalStateException("app UI not ready"))
+            else p.postMessage(WebMessageCompat(msg.toString()))
+        }
+        try {
+            val reply = future.get(25, TimeUnit.SECONDS)
+            if (reply.has("error")) throw IllegalStateException(reply.getString("error"))
+            return reply.getJSONObject("result")
+        } finally {
+            mcpPending.remove(id)
+        }
+    }
+
+    private fun mcpStart(key: String, portNumber: Int): String {
+        McpHost.handler = this
+        return try {
+            McpHost.start(key, portNumber)
+            JSONObject().put("ok", true).put("addresses", JSONArray(McpServer.addresses())).toString()
+        } catch (e: Exception) {
+            JSONObject().put("ok", false).put("error", e.message ?: "kan server niet starten").toString()
+        }
+    }
+
     /** Methods callable from JavaScript (they run on a binder thread). */
     inner class Bridge {
+        @JavascriptInterface fun mcpStart(key: String, port: Int): String = this@MainActivity.mcpStart(key, port)
+        @JavascriptInterface fun mcpStop() = McpHost.stop()
+        @JavascriptInterface fun mcpReply(id: String, json: String) {
+            mcpPending[id]?.complete(JSONObject(json))
+        }
+        @JavascriptInterface fun networkAddresses(): String = JSONArray(McpServer.addresses()).toString()
         @JavascriptInterface fun connect() = main.post { openPort() }.let { }
         @JavascriptInterface fun startCamera() = main.post { this@MainActivity.startCamera() }.let { }
         @JavascriptInterface fun stopCamera() = main.post { wantCamera = false; camera.stop() }.let { }

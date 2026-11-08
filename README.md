@@ -89,6 +89,8 @@ How it works:
   tools can use it. **Import** the camera's own photos with the file picker (the camera shows up
   as USB storage).
 - The app opens by itself when the camera is plugged in.
+- **MCP server in the app**: let Claude on your computer read and analyse the snapshots on the
+  phone over Wi-Fi (see *AI integration* below).
 
 First use:
 
@@ -146,6 +148,31 @@ Example questions: "Put a measurement point on the hottest connector and take a 
 "Show the trend of point Group 3 this month".
 
 Set `OPENTHERMCAM_URL` (or `openthermcam mcp --url`) if the app runs on another port or machine.
+
+### MCP server in the Android app
+
+The Android app has its own MCP server for the snapshots stored on the phone (no live view).
+Claude on a computer in the same Wi-Fi network connects to it directly; no PC app and no firewall
+change are needed.
+
+1. In the app: **Bibliotheek → 🤖 Claude → MCP-server aan**. The app shows its address, a key and
+   the ready-made command.
+2. On the computer (Claude Code):
+
+   ```bash
+   claude mcp add --transport http openthermcam-telefoon http://<phone-ip>:8766/mcp --header "Authorization: Bearer <key>"
+   ```
+
+Tools: `list_snapshots`, `get_snapshot`, `get_snapshot_image`, `get_snapshot_photo`,
+`get_temperature_at`, `compare_snapshots` (with difference image), `list_point_names`, `point_trend`,
+`set_snapshot_points`, `annotate_snapshot`.
+
+- Transport: MCP Streamable HTTP (JSON responses), `POST /mcp`, every request needs the key
+  (`Authorization: Bearer …`); without it the app answers 401.
+- The app must be open (Android pauses background apps). The server is off until you switch it on,
+  and comes back by itself after an app restart.
+- If the phone gets another IP address, run the command again with the new address. A fixed
+  address for the phone in your router (DHCP reservation) avoids that.
 
 ## Development
 

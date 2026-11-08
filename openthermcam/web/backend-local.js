@@ -27,7 +27,8 @@ async function tx(stores, mode, fn) {
   return new Promise((resolve, reject) => {
     const t = d.transaction(stores, mode);
     const result = fn(...[].concat(stores).map((s) => t.objectStore(s)));
-    t.oncomplete = () => resolve(result?.result ?? result);
+    // a get() request resolves to its record (undefined when the key does not exist)
+    t.oncomplete = () => resolve(result instanceof IDBRequest ? result.result : result);
     t.onerror = () => reject(t.error);
   });
 }
@@ -60,6 +61,12 @@ function bytesToB64(bytes) {
 }
 
 // ---- native bridge -------------------------------------------------------------------
+let mcpHandler = null;
+/** Register the function that answers MCP requests: (method, params) => Promise<result>. */
+export function onMcpRequest(fn) {
+  mcpHandler = fn;
+}
+
 const liveListeners = new Set();
 let latest = null; // {data, time}
 let cameraStatus = { status: native ? "connecting" : "error", message: native ? "" : "geen USB-brug (alleen in de Android-app)", temperature_frames: 0, video_frames: 0 };
@@ -87,10 +94,17 @@ if (native) {
         const u = b64ToBytes(d.slice(4));
         dispatch(u[0], u.subarray(1));
       } else if (typeof d === "string") {
-        try {
-          cameraStatus = { ...cameraStatus, ...JSON.parse(d) };
-          for (const l of liveListeners) l.onStatus?.(cameraStatus);
-        } catch { /* ignore */ }
+        let msg;
+        try { msg = JSON.parse(d); } catch { return; }
+        if (msg.type === "mcp") {
+          // a request from the app's MCP server (Kotlin); answered via native.mcpReply
+          Promise.resolve(mcpHandler ? mcpHandler(msg.method, msg.params || {}) : Promise.reject(new Error("MCP not ready")))
+            .then((result) => native.mcpReply(msg.id, JSON.stringify({ result })))
+            .catch((e) => native.mcpReply(msg.id, JSON.stringify({ error: e.message || String(e) })));
+          return;
+        }
+        cameraStatus = { ...cameraStatus, ...msg };
+        for (const l of liveListeners) l.onStatus?.(cameraStatus);
       }
     };
   });

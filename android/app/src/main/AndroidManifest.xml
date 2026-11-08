@@ -5,6 +5,8 @@
     <!-- Android 9+ requires the camera permission to open USB video class (UVC) devices -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!-- MCP server on the local network (opt-in in the app, protected by a key) -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="false"
@@ -14,7 +16,7 @@
 
         <activity
             android:name=".MainActivity"
-            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|keyboard|smallestScreenSize|uiMode|density|fontScale|navigation|colorMode|layoutDirection|locale"
             android:exported="true"
             android:launchMode="singleTask">
             <intent-filter>
