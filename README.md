@@ -184,7 +184,8 @@ change are needed.
 
 Tools: `list_snapshots`, `get_snapshot`, `get_snapshot_image`, `get_snapshot_photo`,
 `get_temperature_at`, `compare_snapshots` (with difference image), `list_point_names`, `point_trend`,
-`set_snapshot_points`, `annotate_snapshot`.
+`set_snapshot_points`, `annotate_snapshot`, `get_live_measurement_points`,
+`set_live_measurement_points` (the points every new snapshot in the app gets).
 
 - Transport: MCP Streamable HTTP (JSON responses), `POST /mcp`, every request needs the key
   (`Authorization: Bearer …`); without it the app answers 401.

@@ -130,6 +130,24 @@ export const TOOLS = [
     },
   },
   {
+    name: "get_live_measurement_points", annotations: RO,
+    description: "The measurement points used in the app's live view; every new snapshot taken in the app gets these points.",
+    inputSchema: { type: "object", properties: {} },
+    async run() {
+      return [text(await api.livePoints())];
+    },
+  },
+  {
+    name: "set_live_measurement_points", annotations: RW,
+    description: "Replace the live measurement points of the app (same format as set_snapshot_points). Every new snapshot taken in the app gets these points, so naming them consistently builds trends over time.",
+    inputSchema: { type: "object", properties: { points: POINTS_SCHEMA }, required: ["points"] },
+    async run({ points }) {
+      const saved = await api.setLivePoints(points);
+      window.dispatchEvent(new CustomEvent("otc-live-points-changed", { detail: saved }));
+      return [text(saved)];
+    },
+  },
+  {
     name: "annotate_snapshot", annotations: RW,
     description: "Change the title, notes and/or tags of a snapshot (only the given fields).",
     inputSchema: { type: "object", properties: { ...ID, title: { type: "string" }, notes: { type: "string" }, tags: { type: "array", items: { type: "string" } } }, required: ["snapshot_id"] },

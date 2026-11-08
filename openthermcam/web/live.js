@@ -52,6 +52,9 @@ export async function liveView(root) {
   root.append(layout);
 
   view.setPoints(await api.livePoints().catch(() => []));
+  // live points changed elsewhere (e.g. by Claude through the app's MCP server)
+  const onPointsChanged = (ev) => { view.setPoints(ev.detail); list.rebuild(); };
+  window.addEventListener("otc-live-points-changed", onPointsChanged);
   list.rebuild();
 
   // ---- snapshot -------------------------------------------------------------
@@ -119,6 +122,7 @@ export async function liveView(root) {
   }, 500);
 
   return () => {
+    window.removeEventListener("otc-live-points-changed", onPointsChanged);
     closeLive();
     clearInterval(ageTimer);
     document.removeEventListener("keydown", onKey);
