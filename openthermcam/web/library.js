@@ -69,22 +69,36 @@ export async function libraryView(root) {
     compareBtn.textContent = `Vergelijk geselecteerde (${picked.size}/2)`;
   }
 
+  // thumbnails: only for cards that scroll into view; shown once fully loaded
+  const palette = localStorage.getItem("otc.palette") || "ironbow";
+  const thumbs = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (!e.isIntersecting) continue;
+      thumbs.unobserve(e.target);
+      const img = e.target.querySelector(".thumb img");
+      img.onload = () => { img.hidden = false; e.target.querySelector(".thumb").classList.add("ready"); };
+      api.thumbUrl(e.target.dataset.id, palette).then((url) => (img.src = url)).catch(() => {});
+    }
+  }, { rootMargin: "300px" });
+
   async function load() {
     const items = await api.list({ q: el.querySelector("#q").value, tag: el.querySelector("#tag").value, limit: 500 });
+    thumbs.disconnect();
     grid.innerHTML = "";
     el.querySelector("#count").textContent = `${items.length} snapshot(s)`;
     if (!items.length) grid.append(h(`<p class="muted">Nog geen snapshots. Maak er een in <a href="#/live">Live</a> of importeer de foto's van de camera.</p>`));
     for (const s of items) {
       const card = h(`<div class="card${picked.has(s.id) ? " picked" : ""}">
           <input type="checkbox" class="pick" title="Selecteren om te vergelijken" ${picked.has(s.id) ? "checked" : ""}>
-          <img loading="lazy" alt="">
+          <div class="thumb"><img alt="" hidden></div>
           <div class="meta">
             <div class="title">${esc(s.title || "Zonder titel")}</div>
             <div class="sub"><span>${fmtDate(s.taken_at)}</span><span>${s.tmax.toFixed(1)} °C</span></div>
             <div class="tags">${s.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>
           </div>
         </div>`);
-      api.imageUrl(s.id, { palette: localStorage.getItem("otc.palette") || "ironbow" }).then((url) => (card.querySelector("img").src = url));
+      card.dataset.id = s.id;
+      thumbs.observe(card);
       const box = card.querySelector(".pick");
       box.addEventListener("click", (ev) => {
         ev.stopPropagation();

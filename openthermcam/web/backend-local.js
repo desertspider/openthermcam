@@ -10,12 +10,15 @@ const native = window.OTCNative;
 let dbPromise;
 function db() {
   dbPromise ??= new Promise((resolve, reject) => {
-    const req = indexedDB.open("openthermcam", 1);
-    req.onupgradeneeded = () => {
+    const req = indexedDB.open("openthermcam", 2);
+    req.onupgradeneeded = (ev) => {
       const d = req.result;
-      d.createObjectStore("snapshots", { keyPath: "id" });
-      d.createObjectStore("matrices");
-      d.createObjectStore("visuals");
+      if (ev.oldVersion < 1) {
+        d.createObjectStore("snapshots", { keyPath: "id" });
+        d.createObjectStore("matrices");
+        d.createObjectStore("visuals");
+      }
+      if (ev.oldVersion < 2) d.createObjectStore("thumbs"); // "<id>|<palette>" -> JPEG Blob
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -141,6 +144,14 @@ async function getSnap(id) {
   return s;
 }
 
+// render thumbnails one after another, so the first visible ones are ready quickly
+let thumbChain = Promise.resolve();
+function thumbQueue(job) {
+  const run = thumbChain.then(job, job);
+  thumbChain = run.catch(() => {});
+  return run;
+}
+
 const urlCache = new Map();
 async function cachedUrl(key, make) {
   if (!urlCache.has(key)) urlCache.set(key, make().then((b) => URL.createObjectURL(b)));
@@ -191,7 +202,10 @@ export function createLocalBackend() {
       return s;
     },
     async remove(id) {
-      await tx(["snapshots", "matrices", "visuals"], "readwrite", (s, m, v) => { s.delete(id); m.delete(id); v.delete(id); });
+      await tx(["snapshots", "matrices", "visuals", "thumbs"], "readwrite", (s, m, v, t) => {
+        s.delete(id); m.delete(id); v.delete(id);
+        t.delete(IDBKeyRange.bound(`${id}|`, `${id}|￿`));
+      });
       dropUrls(id);
       return { deleted: id };
     },
@@ -227,6 +241,18 @@ export function createLocalBackend() {
         const m = await loadMatrix(id);
         return canvasBlob(renderCanvas(m.data, m.rows, m.cols, palette, vmin, vmax));
       });
+    },
+    /** Small library thumbnail: rendered once per palette, then kept in IndexedDB. */
+    async thumbUrl(id, palette = "ironbow") {
+      const key = `${id}|${palette}`;
+      return cachedUrl(`thumb|${key}`, () => thumbQueue(async () => {
+        const stored = await getOne("thumbs", key);
+        if (stored) return stored;
+        const m = await loadMatrix(id);
+        const blob = await canvasBlob(renderCanvas(m.data, m.rows, m.cols, palette), "image/jpeg", 0.85);
+        await tx("thumbs", "readwrite", (t) => t.put(blob, key));
+        return blob;
+      }));
     },
     async compareImageUrl(a, b) {
       return cachedUrl(`cmp|${a}|${b}`, async () => {

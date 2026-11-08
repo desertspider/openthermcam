@@ -43,6 +43,9 @@ export function createRemoteBackend() {
     async imageUrl(id, { palette = "ironbow", scale = 1, vmin, vmax } = {}) {
       return `/api/snapshots/${id}/image?` + qs({ palette, scale, vmin, vmax });
     },
+    async thumbUrl(id, palette = "ironbow") {
+      return `/api/snapshots/${id}/image?` + qs({ palette, scale: 1 });
+    },
     async compareImageUrl(a, b) {
       return `/api/compare/image?a=${a}&b=${b}&scale=2`;
     },
