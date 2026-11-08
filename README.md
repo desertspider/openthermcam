@@ -1,6 +1,6 @@
 # OpenThermCam
 
-Open viewer for USB thermal cameras that ship with **TDView**: a live radiometric view,
+Open viewer for USB thermal cameras that ship with **TDView**, such as the **RayThink CX200+**: a live radiometric view,
 measurement points, snapshots you can keep and compare, trends over time, and an **MCP
 server** so an AI assistant (Claude) can look along, measure and compare.
 
@@ -11,7 +11,7 @@ the camera directly over USB-C. The user interface is in Dutch.
 
 | | Device | System |
 |---|---|---|
-| Camera | USB thermal camera used with TDView, 256×192 sensor, USB ID `1D6B:1110` (Linux USB gadget: UVC + mass storage + RNDIS) | – |
+| Camera | **RayThink CX200+** handheld thermal camera, 256×192 sensor, USB ID `1D6B:1110` (Linux USB gadget: UVC + mass storage + RNDIS) | – |
 | PC | Framework Laptop 16 (AMD Ryzen AI 300 Series) | Windows 11 Pro |
 | Phone | Google Pixel 8 Pro (camera on the USB-C port) | Android 17 |
 
