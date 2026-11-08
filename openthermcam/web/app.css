@@ -131,6 +131,19 @@ aside { min-width: 0; }
 .muted { color: var(--muted); }
 .button-like { display: inline-block; cursor: pointer; background: var(--panel-2); border: 1px solid var(--line); border-radius: 7px; padding: 6px 10px; }
 
+/* floating snapshot button: phone/tablet only (on wide screens the panel button is in view) */
+.fab { display: none; }
+@media (max-width: 900px) {
+  .fab {
+    display: grid; place-items: center; position: fixed; right: 18px; bottom: calc(22px + env(safe-area-inset-bottom));
+    width: 64px; height: 64px; border-radius: 50%; padding: 0; font-size: 28px; z-index: 20;
+    background: var(--accent); border: none; color: #1a0e00; box-shadow: 0 6px 20px rgba(0, 0, 0, .45);
+  }
+  .fab:active { transform: scale(.94); }
+  .fab:disabled { opacity: .6; }
+  .toast { bottom: 100px; }
+}
+
 /* phone */
 @media (max-width: 700px) {
   .topbar { flex-wrap: wrap; gap: 8px 12px; padding: 8px 10px; }

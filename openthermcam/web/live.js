@@ -44,6 +44,7 @@ export async function liveView(root) {
           <p class="hint">Bewaart de volledige temperatuurmatrix met de meetpunten. Sneltoets: spatiebalk.</p>
         </div>
       </aside>
+      <button class="fab" id="snap-fab" title="Snapshot maken" aria-label="Snapshot maken">📸</button>
     </div>`);
   const stagePanel = layout.querySelector("#stage-panel");
   stagePanel.append(viewControls(view, palettes, { video: hasWebCodecs }), view.el);
@@ -59,8 +60,10 @@ export async function liveView(root) {
 
   // ---- snapshot -------------------------------------------------------------
   const snapBtn = layout.querySelector("#snap-btn");
+  const fab = layout.querySelector("#snap-fab");
   async function takeSnapshot() {
-    snapBtn.disabled = true;
+    if (snapBtn.disabled) return;
+    snapBtn.disabled = fab.disabled = true;
     try {
       const tags = layout.querySelector("#snap-tags").value.split(",").map((t) => t.trim()).filter(Boolean);
       const snap = await api.snapshot({
@@ -74,10 +77,11 @@ export async function liveView(root) {
     } catch (e) {
       toast(`Snapshot mislukt: ${esc(e.message)}`, 5000);
     } finally {
-      snapBtn.disabled = false;
+      snapBtn.disabled = fab.disabled = false;
     }
   }
   snapBtn.addEventListener("click", takeSnapshot);
+  fab.addEventListener("click", takeSnapshot);
   const onKey = (ev) => {
     if (ev.code === "Space" && !["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) {
       ev.preventDefault();
