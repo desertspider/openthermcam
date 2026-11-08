@@ -269,7 +269,7 @@ class DirectShowCamera(CameraSource):
             control = _query(graph, IID_IMediaControl)
             hr = _vcall(control, 7, [])  # Run
             if hr not in (0, 1):
-                raise OSError(f"camera kan niet starten (0x{hr:08x}); is TDView nog open?")
+                raise OSError(f"camera kan niet starten (0x{hr:08x}); is een ander programma nog met de camera verbonden?")
             self._last_sample = time.time()
             self.set_status("connecting", "wachten op beeld")
             while not self._stop.wait(0.5):

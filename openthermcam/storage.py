@@ -138,7 +138,7 @@ class Library:
             sibling = path.with_name(path.name[: m.start(0)] + m.group(1) + "-DC.jpg")
             if sibling.exists():
                 visual = sibling.read_bytes()
-        tags = ["import", "camera" if m else "tdview"]
+        tags = ["import", "camera" if m else "bestand"]
         snap = self.add(img.matrix, taken_at=taken, source="import", title=path.stem, tags=tags,
                         points=img.rois, source_path=str(path), file_hash=digest, visual_jpeg=visual,
                         extra={k: v for k, v in img.meta.items() if k != "roi"})

@@ -1,7 +1,8 @@
 # Camera protocol and file formats
 
-Found by analysing TDView, capturing the camera with Media Foundation and DirectShow, and
-recording USB traffic with USBPcap while TDView took a snapshot (November 2026).
+Found by analysing the camera's Windows viewer software, capturing the camera with Media
+Foundation and DirectShow, and recording USB traffic with USBPcap while that software took a
+snapshot (November 2026).
 
 ## Device
 
@@ -13,8 +14,8 @@ The camera is a Linux USB gadget, `VID_1D6B&PID_1110`, with three functions:
 | MI_02 | UVC video, DirectShow name **`UVC Camera 0`** | **yes** |
 | MI_04 | Mass storage (FAT32), photos in `DCIM\` | import only |
 
-No vendor commands are needed. While streaming, TDView only sends the standard UVC
-probe/commit; the serial `AA .. EB AA` commands in TDView's log fail on this model and can be ignored.
+No vendor commands are needed. While streaming, the viewer software only sends the standard UVC
+probe/commit; the serial `AA .. EB AA` commands it logs fail on this model and can be ignored.
 
 ## Video stream (UVC, bulk endpoint 0x83)
 
@@ -25,8 +26,8 @@ probe/commit; the serial `AA .. EB AA` commands in TDView's log fail on this mod
   - sample = 10-byte marker `FF 00 FF 00 FF 00 FF 00 FF 00` + **192 × 256 uint16 little-endian**
     (row-major, 192 columns × 256 rows, portrait, same orientation as the video)
   - **T [°C] = value / 10 − 273.15** (0.1 K resolution)
-  - Checked against a TDView snapshot taken at the same moment: mean absolute difference 0.05 °C
-    (TDView rounds to 0.1 °C).
+  - Checked against a snapshot taken at the same moment by the viewer software: mean absolute
+    difference 0.05 °C (that software rounds to 0.1 °C).
 - The video frame is the matrix scaled by 4/3 (192→256, 256→342), so matrix coordinates map
   directly onto the video.
 - Distinguish samples by their first bytes: `00 00 00 01` = H.264, `FF 00 FF 00` = temperature.
@@ -35,13 +36,13 @@ probe/commit; the serial `AA .. EB AA` commands in TDView's log fail on this mod
 ### Windows capture
 
 - **DirectShow** (Sample Grabber accepting the native H.264 type, no decoder, `BufferCB` callback)
-  delivers both kinds of samples. This is what TDView and OpenThermCam use.
+  delivers both kinds of samples. This is what the viewer software and OpenThermCam use.
 - **Media Foundation** (`IMFSourceReader`, and therefore Chrome's `getUserMedia`) only delivered
   the H.264 frames in testing; the temperature samples were dropped.
 - **WebUSB** cannot be used: browsers block the video (and mass-storage) interface classes.
-- The camera can be opened by one program at a time. Close TDView before starting OpenThermCam.
+- The camera can be opened by one program at a time. Close other camera software before starting OpenThermCam.
 
-## Radiometric JPEG (camera `DCIM\*-IR.jpg` and TDView snapshots)
+## Radiometric JPEG (camera `DCIM\*-IR.jpg` and viewer-software snapshots)
 
 After the JPEG end-of-image marker (`FF D9`) there is a trailer:
 
@@ -57,6 +58,6 @@ After the JPEG end-of-image marker (`FF D9`) there is a trailer:
 
 - Camera files: the JPEG is 256×342 (the screen, including the camera's on-screen overlay); a
   `-DC.jpg` file with the same timestamp is the visual photo. The file name carries the correct local time.
-- TDView files: the JPEG is 192×256.
+- Snapshots saved by the viewer software: the JPEG is 192×256.
 - OpenThermCam writes the same layout (header + float32 matrix + its own JSON), so its snapshot
   files can be read by the same parser.

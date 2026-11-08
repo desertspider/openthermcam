@@ -81,7 +81,7 @@ def main(argv: list[str] | None = None) -> None:
     m.add_argument("--url", default=os.environ.get("OPENTHERMCAM_URL", "http://127.0.0.1:8765"))
     m.set_defaults(fn=cmd_mcp)
 
-    i = sub.add_parser("import", help="import radiometric JPEGs (camera DCIM or TDView snapshots)")
+    i = sub.add_parser("import", help="import radiometric JPEGs (camera DCIM photos or other radiometric JPEGs)")
     i.add_argument("folder", type=Path)
     i.set_defaults(fn=cmd_import)
 

@@ -1,11 +1,19 @@
 # OpenThermCam
 
-Open viewer for USB thermal cameras that ship with **TDView**, such as the **RayThink CX200+**: a live radiometric view,
+Open viewer for USB thermal cameras such as the **RayThink CX200+**: a live radiometric view,
 measurement points, snapshots you can keep and compare, trends over time, and an **MCP
 server** so an AI assistant (Claude) can look along, measure and compare.
 
-It runs on a **Windows PC** (Python server + browser UI) and as an **Android app** that reads
-the camera directly over USB-C. The user interface is in Dutch.
+It comes in two forms that share the same user interface:
+
+- **Windows PC**: a small Python server that reads the camera over USB, plus the UI in your browser
+  and an MCP server for live and library access.
+- **Android app**: plug the camera into your phone's USB-C port and use it on the spot, with no PC
+  or internet needed. The app reads the camera directly over USB, keeps its own snapshot library
+  on the phone and has its own MCP server, so Claude on your computer can read and analyse the
+  phone's snapshots over Wi-Fi. Tested on a Pixel 8 Pro (Android 17).
+
+The user interface is in Dutch.
 
 ## Tested hardware
 
@@ -15,8 +23,8 @@ the camera directly over USB-C. The user interface is in Dutch.
 | PC | Windows PC | Windows 11 Pro |
 | Phone | Google Pixel 8 Pro (camera on the USB-C port) | Android 17 |
 
-Other cameras that TDView handles as "UVC handheld" and that send the same in-band temperature
-frames (see [docs/PROTOCOL.md](docs/PROTOCOL.md)) will most likely work too, but have not been tested.
+Other UVC thermal cameras that send the same in-band temperature frames
+(see [docs/PROTOCOL.md](docs/PROTOCOL.md)) will most likely work too, but have not been tested.
 
 ## What it does
 
@@ -30,7 +38,7 @@ frames (see [docs/PROTOCOL.md](docs/PROTOCOL.md)) will most likely work too, but
 - **Snapshots**: the full temperature matrix plus points, title, notes and tags. Space bar = snapshot.
 - **Library**: search, filter by tag, edit points afterwards, download the radiometric JPEG.
 - **Import**: the camera's own photos (`D:\DCIM\*-IR.jpg`, including the visual `-DC.jpg`)
-  and old TDView snapshots, including their measurement points. Duplicates are skipped.
+  and other radiometric JPEGs in the same format, including their measurement points. Duplicates are skipped.
 - **Compare**: two snapshots side by side on the same colour range, a difference image
   (red = warmer, blue = colder) and per-point deltas. Points with the same name are matched.
 - **Trends**: a named point (for example "Group 3") across all snapshots over time.
@@ -43,7 +51,7 @@ How the camera is read is documented in [docs/PROTOCOL.md](docs/PROTOCOL.md).
 
 - Windows 10/11 (camera capture uses DirectShow), Python 3.11+, [uv](https://docs.astral.sh/uv/)
 - A Chromium-based browser (Chrome/Edge) for the video mode; the radiometric mode works in any modern browser.
-- **Close TDView first**: the camera can only be used by one program at a time.
+- **Close other camera software first**: the camera can only be used by one program at a time.
 
 ## Getting started
 
@@ -61,7 +69,7 @@ uv run openthermcam serve --simulate --open
 Other commands:
 
 ```bash
-uv run openthermcam import D:\DCIM          # import camera photos / TDView snapshots
+uv run openthermcam import D:\DCIM          # import camera photos / radiometric JPEGs
 uv run openthermcam devices                 # list DirectShow video devices
 uv run openthermcam serve --device "Name"   # if your camera has another device name
 ```
@@ -85,7 +93,7 @@ How it works:
   of the Python server it uses an on-device backend: frames arrive over a MessagePort from the
   USB code, the snapshot library is kept on the phone (IndexedDB).
 - **Share** a snapshot from its detail screen: you get the radiometric JPEG (same format as the PC
-  version and TDView), for example to send it to your PC and import it there, where the MCP/AI
+  version and the camera), for example to send it to your PC and import it there, where the MCP/AI
   tools can use it. **Import** the camera's own photos with the file picker (the camera shows up
   as USB storage).
 - The app opens by itself when the camera is plugged in.

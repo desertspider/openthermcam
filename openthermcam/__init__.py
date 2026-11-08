@@ -1,4 +1,4 @@
-"""OpenThermCam: open viewer for USB thermal cameras (TDView alternative)."""
+"""OpenThermCam: open viewer for USB thermal cameras."""
 
 __version__ = "0.1.0"
 

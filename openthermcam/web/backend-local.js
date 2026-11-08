@@ -281,7 +281,7 @@ export function createLocalBackend() {
         a.click();
       }
     },
-    /** Import radiometric JPEGs chosen with a file picker (camera *-IR.jpg with optional *-DC.jpg, TDView snapshots). */
+    /** Import radiometric JPEGs chosen with a file picker (camera *-IR.jpg with optional *-DC.jpg, other radiometric JPEGs). */
     async importFiles(files) {
       const list = [...files];
       const byName = new Map(list.map((f) => [f.name.toLowerCase(), f]));
@@ -304,7 +304,7 @@ export function createLocalBackend() {
             visual = byName.get(`${t}-dc.jpg`) || null;
           }
           const snap = await saveSnapshot(img.data, img.rows, img.cols, {
-            taken, source: "import", title: f.name.replace(/\.jpe?g$/i, ""), tags: ["import", cam ? "camera" : "tdview"],
+            taken, source: "import", title: f.name.replace(/\.jpe?g$/i, ""), tags: ["import", cam ? "camera" : "bestand"],
             points: img.rois, visual, hash, sourcePath: f.name,
           });
           known.add(hash);

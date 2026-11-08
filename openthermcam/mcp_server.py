@@ -150,8 +150,8 @@ def build(base_url: str, client: httpx.Client | None = None) -> MCPServer:
 
     @server.tool(annotations=WRITE)
     def import_folder(folder: str) -> dict:
-        """Import radiometric JPEGs from a folder, e.g. the camera's own photos (D:\\DCIM) or TDView
-        snapshots. Duplicates are skipped."""
+        """Import radiometric JPEGs from a folder, e.g. the camera's own photos (D:\\DCIM) or other
+        radiometric JPEGs. Duplicates are skipped."""
         r = call("POST", "/api/import", json={"folder": folder})
         return {"imported": len(r["imported"]), "duplicate": r["duplicate"], "skipped": r["skipped"], "errors": r["errors"]}
 

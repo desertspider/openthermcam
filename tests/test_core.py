@@ -32,7 +32,7 @@ def test_classify_other_samples():
     assert frames.classify(b"\x12\x34" * 10) is frames.SampleKind.UNKNOWN
 
 
-def test_radiometric_roundtrip_and_tdview_rois():
+def test_radiometric_roundtrip_and_rois():
     m = synthetic_matrix(2.0)
     meta = {"roi": [{"roiName": "P1", "roiType": "PointShape", "tempArea": [84, 150]},
                     {"roiName": "R1", "tempArea": [10, 20, 30, 50]}]}

@@ -1,6 +1,6 @@
 """Read and write radiometric JPEG files.
 
-Format used by the camera (``DCIM/*-IR.jpg``) and by TDView snapshots: a normal JPEG,
+Format used by the camera (``DCIM/*-IR.jpg``) and by its Windows viewer software: a normal JPEG,
 followed after the EOI marker (FF D9) by a trailer:
 
     offset 0   uint16 LE  rows (256)
