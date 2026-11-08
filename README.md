@@ -4,7 +4,19 @@ Open viewer for USB thermal cameras that ship with **TDView**: a live radiometri
 measurement points, snapshots you can keep and compare, trends over time, and an **MCP
 server** so an AI assistant (Claude) can look along, measure and compare.
 
-The user interface is in Dutch.
+It runs on a **Windows PC** (Python server + browser UI) and as an **Android app** that reads
+the camera directly over USB-C. The user interface is in Dutch.
+
+## Tested hardware
+
+| | Device | System |
+|---|---|---|
+| Camera | USB thermal camera used with TDView, 256×192 sensor, USB ID `1D6B:1110` (Linux USB gadget: UVC + mass storage + RNDIS) | – |
+| PC | Framework Laptop 16 (AMD Ryzen AI 300 Series) | Windows 11 Pro |
+| Phone | Google Pixel 8 Pro (camera on the USB-C port) | Android 17 |
+
+Other cameras that TDView handles as "UVC handheld" and that send the same in-band temperature
+frames (see [docs/PROTOCOL.md](docs/PROTOCOL.md)) will most likely work too, but have not been tested.
 
 ## What it does
 
@@ -59,15 +71,51 @@ per snapshot). Use `--data-dir` or `OPENTHERMCAM_DATA` to choose another place.
 
 ## Android app
 
-The same UI also runs as an Android app (`android/`). The app reads the camera directly over
-USB-C (USB host API, no root, no driver) and keeps its library on the phone (IndexedDB).
-Snapshots can be shared as radiometric JPEGs and imported into the PC library.
+The same UI runs as an Android app (`android/`), tested on a **Pixel 8 Pro with Android 17**.
+Plug the thermal camera into the phone's USB-C port (directly with a USB-C cable, or with an OTG
+adapter) and use it like on the PC: live view, measurement points, snapshots, library,
+compare and trends, all on the phone without a PC or internet connection.
 
-- Requires Android 8.0+ with USB host (USB-C/OTG). iOS is not possible (no access to USB cameras).
-- The app opens automatically when the camera is plugged in; allow the USB permission once.
-- Build: open `android/` in Android Studio and run, or without Android Studio:
-  `android\build.ps1 -Install` (JDK 17 + Android SDK in `C:\dev\android-tools`, or set `JAVA_HOME`/`ANDROID_HOME`).
-  The web UI from `openthermcam/web` is copied into the APK at build time.
+How it works:
+
+- The app reads the camera **directly over USB** with Android's USB host API: no root, no driver,
+  no extra app. It does the same UVC negotiation as Windows and receives both the H.264 video and
+  the temperature frames (Kotlin, `android/app/src/main/java/.../UvcCamera.kt`).
+- The UI is the web UI from `openthermcam/web`, bundled in the APK and shown in a WebView. Instead
+  of the Python server it uses an on-device backend: frames arrive over a MessagePort from the
+  USB code, the snapshot library is kept on the phone (IndexedDB).
+- **Share** a snapshot from its detail screen: you get the radiometric JPEG (same format as the PC
+  version and TDView), for example to send it to your PC and import it there, where the MCP/AI
+  tools can use it. **Import** the camera's own photos with the file picker (the camera shows up
+  as USB storage).
+- The app opens by itself when the camera is plugged in.
+
+First use:
+
+1. Install the APK (see *Building* below, or copy `app-debug.apk` to the phone and open it).
+2. Plug in the camera and switch it on; allow *OpenThermCam* to open the USB device.
+3. Allow the **camera permission**. Android 9 and later require it for USB video devices, even
+   though the phone's own camera is never used.
+
+Requirements and limits:
+
+- Android 8.0+ with USB host support (practically every phone with USB-C).
+- iPhone/iPad is not possible: iOS gives apps no access to USB video devices.
+- The camera can only be used by one app at a time.
+- The phone powers the camera through its USB-C port, so the phone battery drains faster.
+
+### Building the APK
+
+Open `android/` in Android Studio and run it, or build without Android Studio:
+
+```bash
+powershell -ExecutionPolicy Bypass -File android\build.ps1 -Install
+```
+
+`build.ps1` uses JDK 17 and the Android SDK from `C:\dev\android-tools` (or `JAVA_HOME` /
+`ANDROID_HOME`) and installs on the phone connected through `adb`. The web UI is copied into the
+APK at build time. Helpers for development: `android\wifi-adb.ps1` switches adb to Wi-Fi so the
+phone's USB-C port is free for the camera, and `android\debug.ps1` collects logcat and a screenshot.
 
 ## AI integration (MCP)
 
@@ -116,7 +164,8 @@ Layout:
 | `openthermcam/analysis.py` | point/rect measurement, stats, comparison |
 | `openthermcam/server.py` | FastAPI REST + WebSocket |
 | `openthermcam/mcp_server.py` | MCP tools (stdio), calls the REST API |
-| `openthermcam/web/` | browser UI, plain ES modules, no build step |
+| `openthermcam/web/` | browser UI, plain ES modules, no build step; `backend-remote.js` (PC server) or `backend-local.js` (Android) is picked automatically |
+| `android/` | Android app: WebView host, USB/UVC reader, build and debug scripts |
 
 Live stream protocol (`/ws/live`): binary messages whose first byte is the type:
 `1` = H.264 Annex-B frame, `2` = temperature frame (192×256 uint16 LE, deci-kelvin).
